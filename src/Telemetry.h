@@ -9,10 +9,21 @@ namespace airball {
 
 class Telemetry {
 public:
+  static const uint16_t kMessageDomainLocal = 0;
+  static const uint16_t kMessageDomainCanBus = 1;
+
+  static const uint16_t kLocalMessageIdButtonPress = 0;
+  static const uint16_t kLocalMessageIdButtonRelease = 1;
+  static const uint16_t kLocalMessageIdKnobIncrement = 2;
+  static const uint16_t kLocalMessageIdKnobDecrement = 3;
+
+#pragma pack(push, 1)
   struct Message {
+    uint16_t domain;
     uint16_t id;
     uint8_t data[8];
   };
+#pragma pack(pop)
 
   Telemetry(AbstractSerialLink<sizeof(Message)>* link);
 
