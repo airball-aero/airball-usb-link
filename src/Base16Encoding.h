@@ -13,8 +13,9 @@ public:
   static void encode(const uint8_t* decoded, size_t len, uint8_t* encoded);
 
   // Decode the string "encoded". "decoded" must point to a buffer containing at least
-  // (len / 2) characters. "len" must be an even number.
-  static void decode(const uint8_t* encoded, size_t len, uint8_t* decoded);
+  // (len / 2) characters. "len" must be an even number. Returns true if the result was
+  // a valid decoding; false if the input contained unsupported characters.
+  static bool decode(const uint8_t* encoded, size_t len, uint8_t* decoded);
 };
 
 } // namespace airball

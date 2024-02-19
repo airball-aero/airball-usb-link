@@ -2,7 +2,6 @@
 #define AIRBALL_TELEMETRY_TELEMETRY_H
 
 #include <cstdint>
-#include <mutex>
 
 #include "AbstractSerialLink.h"
 
@@ -28,16 +27,14 @@ public:
 
   Telemetry(AbstractSerialLink<sizeof(Message)>* link);
 
-  // Receive the next Message. Blocks until a Message is received.
-  Message recv();
+  // Receive the next Message. Returns false if no message is available.
+  bool recv(Message* m);
 
   // Send a Message. This is broadcast to everyone on the network.
   void send(Message s);
 
 private:
   AbstractSerialLink<sizeof(Message)>* link_;
-  std::mutex recv_mu_;
-  std::mutex send_mu_;
 };
 
 }  // namespace airball

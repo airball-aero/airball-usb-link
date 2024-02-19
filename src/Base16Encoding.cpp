@@ -55,11 +55,15 @@ void Base16Encoding::encode(const uint8_t* decoded, size_t len, uint8_t* encoded
   }
 }
 
-void Base16Encoding::decode(const uint8_t* encoded, size_t len, uint8_t* decoded) {
+bool Base16Encoding::decode(const uint8_t* encoded, size_t len, uint8_t* decoded) {
   for (int i = 0; i < len / 2; i++) {
-    decoded[i] = byte(
-        safeAt(kCharToNybl, encoded[2 * i]),
-        safeAt(kCharToNybl, encoded[2 * i + 1]));
+    CharToCharMap::const_iterator it[2];
+    it[0] = kCharToNybl.find(encoded[2 * i]);
+    it[1] = kCharToNybl.find(encoded[2 * i + 1]);
+    if (it[0] == kCharToNybl.end() || it[1] == kCharToNybl.end()) {
+      return false;
+    }
+    decoded[i] = byte(it[0]->second, it[1]->second);
   }
 }
 

@@ -34,8 +34,18 @@ void testKnownDecoding() {
   }
 }
 
+void testBadDecodeInput() {
+  std::string encoded("616X636X6566");
+  std::string decoded(encoded.size() / 2, '0');
+  bool result = airball::Base16Encoding::decode((const uint8_t*) encoded.data(), encoded.size(), (uint8_t*) decoded.data());
+  if (result) {
+    std::cerr << "FAIL, failed to catch erroneous input";
+  }
+}
+
 int main(int arg, char** argv) {
   testRoundTrip();
   testKnownEncoding();
   testKnownDecoding();
+  testBadDecodeInput();
 }

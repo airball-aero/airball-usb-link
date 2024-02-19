@@ -15,10 +15,17 @@ protected:
     pushed.append((const char*) &c, 1);
   }
 
-  uint8_t pull() override {
-    uint8_t c = toPull[0];
+  bool pull(uint8_t* c) override {
+    if (toPull.empty()) {
+      return false;
+    }
+    uint8_t p = toPull[0];
     toPull.erase(0, 1);
-    return c;
+    if (p == 'X') {
+      return false;
+    }
+    *c = p;
+    return true;
   }
 };
 
@@ -33,9 +40,13 @@ void testSendSimple() {
 
 void testRecvSimple() {
   TestSerialLink tsl;
-  tsl.toPull = "6162636430313233\n";
+  tsl.toPull = "6X1X6X2X6X3X6X4X3X0X3X1X3X2X3X3X\n";
   uint8_t* buf[kLen];
-  tsl.recv((uint8_t*) buf);
+  while (true) {
+    if (tsl.recv((uint8_t *) buf)) {
+      break;
+    }
+  }
   std::string recvd((char*) buf, kLen);
   if (recvd != "abcd0123") {
     std::cerr << "testRecvSimple failed; received was " << recvd << std::endl;
@@ -46,7 +57,11 @@ void testRecvError() {
   TestSerialLink tsl;
   tsl.toPull = "abc\na\nx\nabcdefghijklmnopqrstuvwxyz\n\n\n\n6162636430313233\n";
   uint8_t* buf[kLen];
-  tsl.recv((uint8_t*) buf);
+  for (int i = 0; i < 60; i++) {
+    if (tsl.recv((uint8_t*) buf)) {
+      break;
+    }
+  }
   std::string recvd((char*) buf, kLen);
   if (recvd != "abcd0123") {
     std::cerr << "testRecvError failed; received was " << recvd << std::endl;
