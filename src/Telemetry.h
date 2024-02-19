@@ -2,6 +2,7 @@
 #define AIRBALL_TELEMETRY_TELEMETRY_H
 
 #include <cstdint>
+#include <mutex>
 
 #include "AbstractSerialLink.h"
 
@@ -35,6 +36,8 @@ public:
 
 private:
   AbstractSerialLink<sizeof(Message)>* link_;
+  std::mutex recv_mu_;
+  std::mutex send_mu_;
 };
 
 }  // namespace airball
