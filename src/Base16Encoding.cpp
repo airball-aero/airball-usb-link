@@ -65,6 +65,7 @@ bool Base16Encoding::decode(const uint8_t* encoded, size_t len, uint8_t* decoded
     }
     decoded[i] = byte(it[0]->second, it[1]->second);
   }
+  return true;
 }
 
 } // namespace airball
