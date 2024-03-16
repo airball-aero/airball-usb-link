@@ -4,6 +4,7 @@
 #include "AbstractSerialLink.h"
 
 constexpr size_t kLen = 8;
+constexpr char kEndMarker = (char) 0xff;
 
 class TestSerialLink : public airball::AbstractSerialLink<kLen> {
 public:
@@ -33,14 +34,14 @@ void testSendSimple() {
   TestSerialLink tsl;
   const char* buf = "abcd0123";
   tsl.send((uint8_t*) buf);
-  if (tsl.pushed != "6162636430313233\n") {
+  if (tsl.pushed != std::string({ 'a', 'b', 'c', 'd', '0', '1', '2', '3', kEndMarker })) {
     std::cerr << "testSendSimple failed; pushed was " << tsl.pushed << std::endl;
   }
 }
 
 void testRecvSimple() {
   TestSerialLink tsl;
-  tsl.toPull = "6X1X6X2X6X3X6X4X3X0X3X1X3X2X3X3X\n";
+  tsl.toPull = std::string({ 'a', 'b', 'c', 'd', '0', '1', '2', '3', kEndMarker });
   uint8_t* buf[kLen];
   while (true) {
     if (tsl.recv((uint8_t *) buf)) {
@@ -55,20 +56,64 @@ void testRecvSimple() {
 
 void testRecvError() {
   TestSerialLink tsl;
-  tsl.toPull = "abc\na\nx\nabcdefghijklmnopqrstuvwxyz\n\n\n\n6162636430313233\n";
-  uint8_t* buf[kLen];
-  for (int i = 0; i < 60; i++) {
-    if (tsl.recv((uint8_t*) buf)) {
-      break;
+  tsl.toPull = std::string({
+
+      // Truncated PDU
+      'a', 'b', 'c', kEndMarker,
+
+      // Run-on PDU
+      'a', 'b', 'c', 'd', '0', '1', '2', '3', '4', kEndMarker,
+
+      // Valid PDU
+      'a', 'b', 'c', 'd', '0', '1', '2', '3', kEndMarker,
+
+      // PDU with nothing but end markers
+      kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker,
+      kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker,
+      kEndMarker,
+
+      // Valid PDU with end marker at end
+      'a', 'b', 'c', 'd', '0', '1', '2', kEndMarker, kEndMarker, kEndMarker,
+
+      // Valid PDU with end marker in middle
+      'a', 'b', 'c', 'd', '0', '1', kEndMarker, kEndMarker, '3', kEndMarker,
+  });
+
+  auto fetch = [&tsl]() -> std::string {
+    uint8_t* buf[kLen];
+    while (true) {
+      if (tsl.recv((uint8_t *) buf)) {
+        break;
+      }
     }
+    return std::string((char*) buf, kLen);
+  };
+
+  std::string s;
+
+  s = fetch();
+  if (s != "abcd0123") {
+    std::cerr << "testRecvError failed; got " << s << std::endl;
   }
-  std::string recvd((char*) buf, kLen);
-  if (recvd != "abcd0123") {
-    std::cerr << "testRecvError failed; received was " << recvd << std::endl;
+
+  s = fetch();
+  if (s != std::string({ kEndMarker, kEndMarker, kEndMarker, kEndMarker,
+                         kEndMarker, kEndMarker, kEndMarker, kEndMarker })) {
+    std::cerr << "testRecvError failed; got " << s << std::endl;
+  }
+
+  s = fetch();
+  if (s != std::string({ 'a', 'b', 'c', 'd', '0', '1', '2', kEndMarker })) {
+    std::cerr << "testRecvError failed; got " << s << std::endl;
+  }
+
+  s = fetch();
+  if (s != std::string({ 'a', 'b', 'c', 'd', '0', '1', kEndMarker, '3' })) {
+    std::cerr << "testRecvError failed; got " << s << std::endl;
   }
 }
 
-int main(int arg, char** argv) {
+ int main(int arg, char** argv) {
   testSendSimple();
   testRecvSimple();
   testRecvError();

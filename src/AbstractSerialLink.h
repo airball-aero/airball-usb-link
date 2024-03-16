@@ -5,8 +5,7 @@
 #include <cstddef>
 #include <cstring>
 #include <vector>
-
-#include "Base16Encoding.h"
+#include <optional>
 
 namespace airball {
 
@@ -14,55 +13,78 @@ template <size_t PDU_LEN>
 class AbstractSerialLink {
 public:
   AbstractSerialLink()
-      : recv_next_byte_encoded_(2),
-        recv_next_line_(PDU_LEN)
+      : recv_next_pdu_(PDU_LEN)
   {
-    recv_next_byte_encoded_.clear();
-    recv_next_line_.clear();
+    state_ = IN_PDU;
+    recv_next_pdu_.clear();
   }
 
   void send(const uint8_t *buf) {
     for (int i = 0; i < PDU_LEN; i++) {
-      push2(buf[i]);
+      if (buf[i] == kEndMarker) {
+        // Escape sequence
+        push(kEndMarker);
+      }
+      push(buf[i]);
     }
-    push(kNewline);
+    push(kEndMarker);
   }
 
   bool recv(uint8_t *buf) {
+    std::optional<uint8_t> unget;
     while (true) {
       uint8_t c;
-      if (!pull(&c)) {
-        return false;
-      }
-      if (c == kNewline) {
-        bool good_line = recv_next_line_.size() == PDU_LEN;
-        if (good_line) {
-          memcpy(buf, recv_next_line_.data(), PDU_LEN);
-        }
-        recv_next_byte_encoded_.clear();
-        recv_next_line_.clear();
-        if (good_line) {
-          return true;
-        }
-        continue;
-      }
-      if (recv_next_line_.size() == PDU_LEN) {
-        recv_next_line_.clear();
-        recv_next_byte_encoded_.clear();
-        continue;
-      }
-      recv_next_byte_encoded_.push_back(c);
-      if (recv_next_byte_encoded_.size() != 2) {
-        continue;
-      }
-      uint8_t new_byte;
-      if (!Base16Encoding::decode(recv_next_byte_encoded_.data(), 2, &new_byte)) {
-        recv_next_line_.clear();
+      if (unget.has_value()) {
+        c = unget.value();
+        unget.reset();
       } else {
-        recv_next_line_.push_back(new_byte);
+        if (!pull(&c)) {
+          return false;
+        }
       }
-      recv_next_byte_encoded_.clear();
-
+      switch (state_) {
+        case IN_PDU:
+          switch (c) {
+            case kEndMarker:
+              state_ = IN_PDU_GOT_END;
+              break;
+            default:
+              recv_next_pdu_.push_back(c);
+              state_ = recv_next_pdu_.size() == PDU_LEN ?
+                       DONE_PDU_AWAITING_END : IN_PDU;
+              break;
+          }
+          break;
+        case IN_PDU_GOT_END:
+          switch (c) {
+            case kEndMarker:
+              recv_next_pdu_.push_back(c);
+              state_ = recv_next_pdu_.size() == PDU_LEN ?
+                       DONE_PDU_AWAITING_END : IN_PDU;
+              break;
+            default:
+              // Error
+              recv_next_pdu_.clear();
+              state_ = IN_PDU;
+              unget = c;
+              break;
+          }
+          break;
+        case DONE_PDU_AWAITING_END:
+          switch (c) {
+            case kEndMarker:
+              memcpy(buf, recv_next_pdu_.data(), PDU_LEN);
+              recv_next_pdu_.clear();
+              state_ = IN_PDU;
+              return true;
+            default:
+              // Error
+              recv_next_pdu_.clear();
+              state_ = IN_PDU;
+              break;
+          }
+          break;
+      }
     }
   }
 
@@ -72,17 +94,16 @@ protected:
   virtual bool pull(uint8_t* c) = 0;
 
 private:
-  static const size_t kNewline = '\n';
+  static const uint8_t kEndMarker = 0xff;
 
-  std::vector<uint8_t> recv_next_byte_encoded_;
-  std::vector<uint8_t> recv_next_line_;
+  enum State {
+    IN_PDU = 0,
+    IN_PDU_GOT_END = 1,
+    DONE_PDU_AWAITING_END = 2,
+  };
 
-  void push2(uint8_t c) {
-    uint8_t encoded[2];
-    Base16Encoding::encode(&c, 1, encoded);
-    push(encoded[0]);
-    push(encoded[1]);
-  }
+  std::vector<uint8_t> recv_next_pdu_;
+  State state_;
 };
 
 } // namespace airball
