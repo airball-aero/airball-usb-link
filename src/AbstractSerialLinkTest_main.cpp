@@ -6,6 +6,14 @@
 constexpr size_t kLen = 8;
 constexpr char kEndMarker = (char) 0xff;
 
+char sumStr(const std::string& str) {
+  uint8_t s = 0;
+  for (char c : str) {
+    s ^= ((uint8_t) c);
+  }
+  return s;
+}
+
 class TestSerialLink : public airball::AbstractSerialLink<kLen> {
 public:
   std::string pushed;
@@ -34,14 +42,21 @@ void testSendSimple() {
   TestSerialLink tsl;
   const char* buf = "abcd0123";
   tsl.send((uint8_t*) buf);
-  if (tsl.pushed != std::string({ 'a', 'b', 'c', 'd', '0', '1', '2', '3', kEndMarker })) {
-    std::cerr << "testSendSimple failed; pushed was " << tsl.pushed << std::endl;
+  std::string want = {
+      'a', 'b', 'c', 'd', '0', '1', '2', '3',
+      sumStr("abcd0123"), kEndMarker,
+  };
+  if (tsl.pushed != want) {
+    std::cerr << "testSendSimple failed; got " << tsl.pushed << " want " << want << std::endl;
   }
 }
 
 void testRecvSimple() {
   TestSerialLink tsl;
-  tsl.toPull = std::string({ 'a', 'b', 'c', 'd', '0', '1', '2', '3', kEndMarker });
+  tsl.toPull = {
+    'a', 'b', 'c', 'd', '0', '1', '2', '3',
+    sumStr("abcd0123"), kEndMarker,
+  };
   uint8_t* buf[kLen];
   while (true) {
     if (tsl.recv((uint8_t *) buf)) {
@@ -49,8 +64,9 @@ void testRecvSimple() {
     }
   }
   std::string recvd((char*) buf, kLen);
-  if (recvd != "abcd0123") {
-    std::cerr << "testRecvSimple failed; received was " << recvd << std::endl;
+  std::string want = "abcd0123";
+  if (recvd != want) {
+    std::cerr << "testRecvSimple failed; got " << recvd << " want " << want << std::endl;
   }
 }
 
@@ -65,18 +81,33 @@ void testRecvError() {
       'a', 'b', 'c', 'd', '0', '1', '2', '3', '4', kEndMarker,
 
       // Valid PDU
-      'a', 'b', 'c', 'd', '0', '1', '2', '3', kEndMarker,
+      'a', 'b', 'c', 'd', '0', '1', '2', '3', sumStr("abcd0123"), kEndMarker,
+
+      // Invalid checksum but otherwise well-formed
+      'a', 'b', 'c', 'd', '0', '1', '2', '3', 0, kEndMarker,
 
       // PDU with nothing but end markers
       kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker,
       kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker,
+      sumStr({
+        kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker,
+        kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker, kEndMarker,
+      }),
       kEndMarker,
 
       // Valid PDU with end marker at end
-      'a', 'b', 'c', 'd', '0', '1', '2', kEndMarker, kEndMarker, kEndMarker,
+      'a', 'b', 'c', 'd', '0', '1', '2', kEndMarker, kEndMarker,
+      sumStr({
+        'a', 'b', 'c', 'd', '0', '1', '2', kEndMarker,
+      }),
+      kEndMarker,
 
       // Valid PDU with end marker in middle
-      'a', 'b', 'c', 'd', '0', '1', kEndMarker, kEndMarker, '3', kEndMarker,
+      'a', 'b', 'c', 'd', '0', '1', kEndMarker, kEndMarker, '3',
+      sumStr({
+        'a', 'b', 'c', 'd', '0', '1', kEndMarker, '3',
+      }),
+      kEndMarker,
   });
 
   auto fetch = [&tsl]() -> std::string {

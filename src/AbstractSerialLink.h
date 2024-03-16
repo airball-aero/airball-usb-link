@@ -27,6 +27,7 @@ public:
       }
       push(buf[i]);
     }
+    push(sumPdu(buf));
     push(kEndMarker);
   }
 
@@ -44,44 +45,54 @@ public:
       }
       switch (state_) {
         case IN_PDU:
-          switch (c) {
-            case kEndMarker:
-              state_ = IN_PDU_GOT_END;
-              break;
-            default:
-              recv_next_pdu_.push_back(c);
-              state_ = recv_next_pdu_.size() == PDU_LEN ?
-                       DONE_PDU_AWAITING_END : IN_PDU;
-              break;
+          if (c == kEndMarker) {
+            state_ = IN_PDU_GOT_END;
+          } else {
+            recv_next_pdu_.push_back(c);
+            state_ = recv_next_pdu_.size() == PDU_LEN ?
+                     DONE_PDU_AWAITING_SUM : IN_PDU;
           }
           break;
         case IN_PDU_GOT_END:
-          switch (c) {
-            case kEndMarker:
-              recv_next_pdu_.push_back(c);
-              state_ = recv_next_pdu_.size() == PDU_LEN ?
-                       DONE_PDU_AWAITING_END : IN_PDU;
-              break;
-            default:
-              // Error
-              recv_next_pdu_.clear();
-              state_ = IN_PDU;
-              unget = c;
-              break;
+          if (c == kEndMarker) {
+            recv_next_pdu_.push_back(c);
+            state_ = recv_next_pdu_.size() == PDU_LEN ?
+                     DONE_PDU_AWAITING_SUM : IN_PDU;
+          } else {
+            // Error
+            recv_next_pdu_.clear();
+            state_ = IN_PDU;
+            unget = c;
+          }
+          break;
+        case DONE_PDU_AWAITING_SUM:
+          if (c == sumPdu(recv_next_pdu_.data())) {
+            state_ = DONE_PDU_AWAITING_END;
+          } else {
+            // Error
+            recv_next_pdu_.clear();
+            state_ = WRONG_SUM_AWAITING_END;
+          }
+          break;
+        case WRONG_SUM_AWAITING_END:
+          if (c == kEndMarker) {
+            state_ = IN_PDU;
+          } else {
+            // Something else -- let's try to start afresh
+            unget = c;
+            state_ = IN_PDU;
           }
           break;
         case DONE_PDU_AWAITING_END:
-          switch (c) {
-            case kEndMarker:
-              memcpy(buf, recv_next_pdu_.data(), PDU_LEN);
-              recv_next_pdu_.clear();
-              state_ = IN_PDU;
-              return true;
-            default:
-              // Error
-              recv_next_pdu_.clear();
-              state_ = IN_PDU;
-              break;
+          if (c == kEndMarker) {
+            memcpy(buf, recv_next_pdu_.data(), PDU_LEN);
+            recv_next_pdu_.clear();
+            state_ = IN_PDU;
+            return true;
+          } else {
+            // Error
+            recv_next_pdu_.clear();
+            state_ = IN_PDU;
           }
           break;
       }
@@ -99,8 +110,18 @@ private:
   enum State {
     IN_PDU = 0,
     IN_PDU_GOT_END = 1,
-    DONE_PDU_AWAITING_END = 2,
+    DONE_PDU_AWAITING_SUM = 2,
+    WRONG_SUM_AWAITING_END = 3,
+    DONE_PDU_AWAITING_END = 4,
   };
+
+  uint8_t sumPdu(const uint8_t* v) {
+    uint8_t s = 0;
+    for (int i = 0; i < PDU_LEN; i++) {
+      s ^= v[i];
+    }
+    return s;
+  }
 
   std::vector<uint8_t> recv_next_pdu_;
   State state_;
