@@ -16,6 +16,9 @@ public:
   static const uint16_t kLocalMessageIdButtonRelease = 1;
   static const uint16_t kLocalMessageIdKnobIncrement = 2;
   static const uint16_t kLocalMessageIdKnobDecrement = 3;
+  static const uint16_t kLocalMessageIdIdentifyLeaderFollower = 4;
+  static const uint16_t kLocalMessageIdThisNodeIsLeader = 5;
+  static const uint16_t kLocalMessageIdThisNodeIsFollower = 6;
 
 #pragma pack(push, 1)
   struct Message {
