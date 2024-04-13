@@ -9,16 +9,16 @@ namespace airball {
 
 class Telemetry {
 public:
-  static const uint16_t kMessageDomainLocal = 0;
-  static const uint16_t kMessageDomainCanBus = 1;
+  static const uint16_t kMessageDomainLocal = 1;
+  static const uint16_t kMessageDomainCanBus = 2;
 
-  static const uint16_t kLocalMessageIdButtonPress = 0;
-  static const uint16_t kLocalMessageIdButtonRelease = 1;
-  static const uint16_t kLocalMessageIdKnobIncrement = 2;
-  static const uint16_t kLocalMessageIdKnobDecrement = 3;
-  static const uint16_t kLocalMessageIdIdentifyLeaderFollower = 4;
-  static const uint16_t kLocalMessageIdThisNodeIsLeader = 5;
-  static const uint16_t kLocalMessageIdThisNodeIsFollower = 6;
+  static const uint16_t kLocalMessageIdButtonPress = 1;
+  static const uint16_t kLocalMessageIdButtonRelease = 2;
+  static const uint16_t kLocalMessageIdKnobIncrement = 3;
+  static const uint16_t kLocalMessageIdKnobDecrement = 4;
+  static const uint16_t kLocalMessageIdIdentifyLeaderFollower = 5;
+  static const uint16_t kLocalMessageIdThisNodeIsLeader = 6;
+  static const uint16_t kLocalMessageIdThisNodeIsFollower = 7;
 
 #pragma pack(push, 1)
   struct Message {
