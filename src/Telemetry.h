@@ -11,6 +11,7 @@ class Telemetry {
 public:
   static const uint16_t kMessageDomainLocal = 1;
   static const uint16_t kMessageDomainCanBus = 2;
+  static const uint16_t kMessageDomainSync = 3;
 
   static const uint16_t kLocalMessageIdButtonPress = 1;
   static const uint16_t kLocalMessageIdButtonRelease = 2;
