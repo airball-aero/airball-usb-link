@@ -1,6 +1,6 @@
 add_library(airball-usb-link
         Base16Encoding.cpp
-        Telemetry.cpp)
+        SerialTelemetry.cpp)
 
 add_executable(Base16EncodingTest
         Base16EncodingTest_main.cpp)

@@ -1,13 +1,11 @@
-#ifndef AIRBALL_TELEMETRY_TELEMETRY_H
-#define AIRBALL_TELEMETRY_TELEMETRY_H
+#ifndef AIRBALL_TELEMETRY_I_TELEMETRY_H
+#define AIRBALL_TELEMETRY_I_TELEMETRY_H
 
 #include <cstdint>
 
-#include "AbstractSerialLink.h"
-
 namespace airball {
 
-class Telemetry {
+class ITelemetry {
 public:
   static const uint16_t kMessageDomainLocal = 1;
   static const uint16_t kMessageDomainCanBus = 2;
@@ -29,18 +27,13 @@ public:
   };
 #pragma pack(pop)
 
-  Telemetry(AbstractSerialLink<sizeof(Message)>* link);
-
-  // Receive the next Message. Returns false if no message is available.
-  bool recv(Message* m);
+   // Receive the next Message. Returns false if no message is available.
+  virtual bool recv(Message* m) = 0;
 
   // Send a Message. This is broadcast to everyone on the network.
-  void send(Message s);
-
-private:
-  AbstractSerialLink<sizeof(Message)>* link_;
+  virtual void send(Message s) = 0;
 };
 
 }  // namespace airball
 
-#endif // AIRBALL_TELEMETRY_TELEMETRY_H
+#endif // AIRBALL_TELEMETRY_I_TELEMETRY_H

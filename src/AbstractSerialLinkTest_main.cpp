@@ -11,7 +11,7 @@ char sumStr(const std::string& str) {
   for (char c : str) {
     s ^= ((uint8_t) c);
   }
-  return s;
+  return (char) s;
 }
 
 class TestSerialLink : public airball::AbstractSerialLink<kLen> {
@@ -117,7 +117,7 @@ void testRecvError() {
         break;
       }
     }
-    return std::string((char*) buf, kLen);
+    return {(char*) buf, kLen};
   };
 
   std::string s;
