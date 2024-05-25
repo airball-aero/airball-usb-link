@@ -49,7 +49,8 @@ public:
 
   static const uint32_t kPageAirdata = 1;  // Airdata from sensors, and commands to airdata sensors
   static const uint32_t kPageHumanInterface = 2;  // Messages to and from human interface devices
-  static const uint32_t kPageDisplaySettings = 3;  // Messages to transfer display system settings
+  static const uint32_t kPageLocalController = 3;  // Messages to and from the local display controller
+  static const uint32_t kPageDisplaySettings = 4;  // Messages to transfer display system settings
 
   // Codes in kPageHumanInterface. These are kind of a special case, because they are
   // transferred between the same entities that share the airball-usb-link Git repo. Strictly
@@ -61,6 +62,10 @@ public:
   static const uint32_t kHumanInterfaceIdentifyLeaderFollower = 5;
   static const uint32_t kHumanInterfaceThisNodeIsLeader = 6;
   static const uint32_t kHumanInterfaceThisNodeIsFollower = 7;
+
+  // Codes in kPageLocalController.
+  static const uint32_t kLocalControllerThisNodeIsLeader = 1;
+  static const uint32_t kLocalControllerThisNodeIsFollower = 2;
 
   // Receive the next Message. Returns false if no message is available.
   virtual bool recv(Message* m) = 0;
