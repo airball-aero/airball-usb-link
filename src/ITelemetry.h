@@ -66,6 +66,7 @@ public:
   // Codes in kPageLocalController.
   static const uint32_t kLocalControllerThisNodeIsLeader = 1;
   static const uint32_t kLocalControllerThisNodeIsFollower = 2;
+  static const uint32_t kLocalControllerIdentifyLeaderFollower = 3;
 
   // Receive the next Message. Returns false if no message is available.
   virtual bool recv(Message* m) = 0;
